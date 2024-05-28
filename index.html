@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+    <script src="components/Bubbleplot.js"></script>
+
+    <title>Life Expectancy</title>
+    <style>
+        .btn-triangle-left,
+        .btn-triangle-right {
+            border: none;
+            background: none;
+            font-size: 1.5em;
+        }
+
+        #yearText {
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+    </header>
+
+    <main class="container">
+        <div class="row pt-2 justify-content-center">
+            <div class="col-auto">
+                <button type="button" class="btn btn-triangle-left" id="prevYearBtn">
+                    <i class="fas fa-caret-left"></i>
+                </button>
+            </div>
+            <div class="col-auto text-center align-self-center" id="yearText"></div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-triangle-right" id="nextYearBtn">
+                    <i class="fas fa-caret-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col offset-8">
+                <input type="radio" class="btn-check" name="color-encoding" id="danger-outlined" autocomplete="off"
+                    value="Status" checked>
+                <label class="btn btn-outline-danger" for="danger-outlined">Status</label>
+
+                <input type="radio" class="btn-check" name="color-encoding" id="success-outlined" autocomplete="off"
+                    value="Continent">
+                <label class="btn btn-outline-success" for="success-outlined">Continent</label>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <svg id="bubbleplot"></svg>
+
+            <svg id="histogram"></svg>
+        </div>
+    </main>
+
+    <script>
+        let data, bubbleplot, currentYear;
+        const yearText = d3.select("#yearText");
+
+        function updateBubbleplot() {
+            let xVar = "GDP";
+            let yVar = "Life_expectancy ";
+            let colorVar = d3.select("input[type=radio][name=color-encoding]:checked").property("value");
+            let radiusVar = "Population";
+
+            bubbleplot.update(xVar, yVar, colorVar, radiusVar, currentYear);
+            yearText.text(`${currentYear}`);
+        }
+
+        d3.csv("https://gist.githubusercontent.com/aishwarya8615/89d9f36fc014dea62487f7347864d16a/raw/8629d284e13976dcb13bb0b27043224b9266fffa/Life_Expectancy_Data.csv").then(csvData => {
+            csvData.forEach(d => {
+                d["Life_expectancy "] = +d["Life_expectancy "];
+                d["GDP"] = +d["GDP"];
+                d["Status"] = d["Status"];
+                d["Continent"] = d["Continent"];
+                d["Population"] = +d["Population"];
+                d["Year"] = +d["Year"];
+            });
+
+            data = csvData;
+            const years = Array.from(new Set(data.map(d => d.Year))).sort();
+            currentYear = years[0];
+
+            bubbleplot = new Bubbleplot("#bubbleplot", data);
+            bubbleplot.initialize();
+
+            updateBubbleplot();
+
+            d3.selectAll("input[type=radio][name=color-encoding]").on("change", updateBubbleplot)
+
+            d3.select("#prevYearBtn").on("click", function () {
+                const currentIndex = years.indexOf(currentYear);
+                if (currentIndex > 0) {
+                    currentYear = years[currentIndex - 1];
+                    updateBubbleplot();
+                    d3.select("#nextYearBtn").attr("disabled", null);
+                }
+                if (currentIndex - 1 === 0) {
+                    d3.select(this).attr("disabled", true);
+                }
+            });
+
+            d3.select("#nextYearBtn").on("click", function () {
+                const currentIndex = years.indexOf(currentYear);
+                if (currentIndex < years.length - 1) {
+                    currentYear = years[currentIndex + 1];
+                    updateBubbleplot();
+                    d3.select("#prevYearBtn").attr("disabled", null);
+                }
+                if (currentIndex + 1 === years.length - 1) {
+                    d3.select(this).attr("disabled", true);
+                }
+            });
+
+            d3.select("#prevYearBtn").attr("disabled", true);
+        });
+    </script>
+</body>
+
+</html>
