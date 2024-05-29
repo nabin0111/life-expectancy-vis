@@ -26,30 +26,35 @@
         #yearText {
             font-size: 1.5em;
         }
+
+        #yearSlider {
+            width: 300px;
+        }
     </style>
 </head>
 
 <body>
     <header>
+        <nav class="container navbar navbar-light bg-light">
+            <div class="container-fluid justify-content-center">
+                <span class="navbar-brand mb-0 h1">Life Expectancy Information Visualization</span>
+            </div>
+        </nav>
     </header>
 
     <main class="container">
-        <div class="row pt-2 justify-content-center">
-            <div class="col-auto">
-                <button type="button" class="btn btn-triangle-left" id="prevYearBtn">
-                    <i class="fas fa-caret-left"></i>
-                </button>
-            </div>
+        <div class="row pt-2 justify-content-center align-items-center mb-2">
             <div class="col-auto text-center align-self-center" id="yearText"></div>
             <div class="col-auto">
-                <button type="button" class="btn btn-triangle-right" id="nextYearBtn">
-                    <i class="fas fa-caret-right"></i>
-                </button>
+                <input type="range" id="yearSlider" min="0" max="0" step="1">
+            </div>
+            <div class="col-auto">
+                <button id="autoBtn" class="btn btn-primary btn-auto">Auto</button>
             </div>
         </div>
 
         <div class="row">
-            <div class="col offset-8">
+            <div class="col-auto offset-8">
                 <input type="radio" class="btn-check" name="color-encoding" id="danger-outlined" autocomplete="off"
                     value="Status" checked>
                 <label class="btn btn-outline-danger" for="danger-outlined">Status</label>
@@ -58,18 +63,25 @@
                     value="Continent">
                 <label class="btn btn-outline-success" for="success-outlined">Continent</label>
             </div>
+
+
         </div>
 
         <div class="text-center">
             <svg id="bubbleplot"></svg>
-
-            <svg id="histogram"></svg>
+            <div class="tooltip bs-tooltip-top show" id="bp-tooltip" role="tooltip" style="display:none">
+                <div class="tooltip-arrow"></div>
+                <div class="tooltip-inner">
+                    Some tooltip text!
+                </div>
+            </div>
         </div>
     </main>
 
     <script>
         let data, bubbleplot, currentYear;
         const yearText = d3.select("#yearText");
+        let autoInterval;
 
         function updateBubbleplot() {
             let xVar = "GDP";
@@ -95,38 +107,49 @@
             const years = Array.from(new Set(data.map(d => d.Year))).sort();
             currentYear = years[0];
 
-            bubbleplot = new Bubbleplot("#bubbleplot", data);
+            bubbleplot = new Bubbleplot("#bubbleplot", "#bp-tooltip", data);
             bubbleplot.initialize();
 
             updateBubbleplot();
 
             d3.selectAll("input[type=radio][name=color-encoding]").on("change", updateBubbleplot)
 
-            d3.select("#prevYearBtn").on("click", function () {
-                const currentIndex = years.indexOf(currentYear);
-                if (currentIndex > 0) {
-                    currentYear = years[currentIndex - 1];
-                    updateBubbleplot();
-                    d3.select("#nextYearBtn").attr("disabled", null);
-                }
-                if (currentIndex - 1 === 0) {
-                    d3.select(this).attr("disabled", true);
-                }
+            const yearSlider = d3.select("#yearSlider");
+            yearSlider.attr("min", 0)
+                .attr("max", years.length - 1)
+                .attr("value", years.indexOf(currentYear));
+
+            yearSlider.on("input", function () {
+                const currentIndex = +this.value;
+                currentYear = years[currentIndex];
+                updateBubbleplot();
             });
 
-            d3.select("#nextYearBtn").on("click", function () {
-                const currentIndex = years.indexOf(currentYear);
-                if (currentIndex < years.length - 1) {
-                    currentYear = years[currentIndex + 1];
+            d3.select("#autoBtn").on("click", function () {
+                if (autoInterval) {
+                    clearInterval(autoInterval);
+                    autoInterval = null;
+                    this.textContent = 'Auto';
+                } else {
+                    currentYear = years[0];
+                    yearSlider.property("value", 0);
                     updateBubbleplot();
-                    d3.select("#prevYearBtn").attr("disabled", null);
-                }
-                if (currentIndex + 1 === years.length - 1) {
-                    d3.select(this).attr("disabled", true);
+                    autoInterval = setInterval(() => {
+                        let currentIndex = years.indexOf(currentYear);
+                        if (currentIndex < years.length - 1) {
+                            currentIndex++;
+                            yearSlider.property("value", currentIndex);
+                            currentYear = years[currentIndex];
+                            updateBubbleplot();
+                        } else {
+                            clearInterval(autoInterval);
+                            autoInterval = null;
+                            d3.select("#autoBtn").text('Auto');
+                        }
+                    }, 500);
+                    this.textContent = 'Stop';
                 }
             });
-
-            d3.select("#prevYearBtn").attr("disabled", true);
         });
     </script>
 </body>

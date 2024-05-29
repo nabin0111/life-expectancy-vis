@@ -3,8 +3,9 @@ class Bubbleplot {
         top: 10, right: 130, bottom: 40, left: 40
     }
 
-    constructor(svg, data, width = 650, height = 320) {
+    constructor(svg, tooltip, data, width = 650, height = 320) {
         this.svg = svg;
+        this.tooltip = tooltip;
         this.data = data;
         this.width = width;
         this.height = height;
@@ -13,6 +14,7 @@ class Bubbleplot {
 
     initialize() {
         this.svg = d3.select(this.svg);
+        this.tooltip = d3.select(this.tooltip);
         this.container = this.svg.append("g");
         this.xAxis = this.svg.append("g");
         this.yAxis = this.svg.append("g");
