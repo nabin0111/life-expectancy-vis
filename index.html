@@ -12,15 +12,26 @@
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
-    <script src="components/Bubbleplot.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+
+    <script src="components/bubbleplot.js"></script>
+    <script src="components/piechart.js"></script>
 
     <title>Life Expectancy</title>
     <style>
-        .btn-triangle-left,
-        .btn-triangle-right {
-            border: none;
-            background: none;
-            font-size: 1.5em;
+        body {
+            background: #eee;
+            overflow-y: scroll;
+        }
+
+        .container {
+            width: 1000px;
+            background: white;
+        }
+
+        .brushed {
+            stroke-width: 1;
+            stroke: black;
         }
 
         #yearText {
@@ -42,7 +53,7 @@
         </nav>
     </header>
 
-    <main class="container">
+    <main class="container pb-3">
         <div class="row pt-2 justify-content-center align-items-center mb-2">
             <div class="col-auto text-center align-self-center" id="yearText"></div>
             <div class="col-auto">
@@ -63,12 +74,10 @@
                     value="Continent">
                 <label class="btn btn-outline-success" for="success-outlined">Continent</label>
             </div>
-
-
         </div>
 
         <div class="text-center">
-            <svg id="bubbleplot"></svg>
+            <svg width="650px" height="320px" id="bubbleplot"></svg>
             <div class="tooltip bs-tooltip-top show" id="bp-tooltip" role="tooltip" style="display:none">
                 <div class="tooltip-arrow"></div>
                 <div class="tooltip-inner">
@@ -76,10 +85,18 @@
                 </div>
             </div>
         </div>
+
+        <div class="text-center">
+            <svg id="piechart_hepa">
+            </svg>
+            <svg id="piechart_polio">
+            </svg>
+        </div>
+
     </main>
 
     <script>
-        let data, bubbleplot, currentYear;
+        let data, brushedData, bubbleplot, piechart, currentYear;
         const yearText = d3.select("#yearText");
         let autoInterval;
 
@@ -88,9 +105,15 @@
             let yVar = "Life_expectancy ";
             let colorVar = d3.select("input[type=radio][name=color-encoding]:checked").property("value");
             let radiusVar = "Population";
+            let country = "Country";
 
-            bubbleplot.update(xVar, yVar, colorVar, radiusVar, currentYear);
+            bubbleplot.update(xVar, yVar, colorVar, radiusVar, currentYear, country);
             yearText.text(`${currentYear}`);
+        }
+
+        function updatePiechart() {
+            piechart_hepa.update(brushedData && brushedData.length > 0 ? brushedData : data.filter(d => d["Year"] == currentYear), "Hepatitis_B", currentYear);
+            piechart_polio.update(brushedData && brushedData.length > 0 ? brushedData : data.filter(d => d["Year"] == currentYear), "Polio", currentYear);
         }
 
         d3.csv("https://gist.githubusercontent.com/aishwarya8615/89d9f36fc014dea62487f7347864d16a/raw/8629d284e13976dcb13bb0b27043224b9266fffa/Life_Expectancy_Data.csv").then(csvData => {
@@ -101,6 +124,9 @@
                 d["Continent"] = d["Continent"];
                 d["Population"] = +d["Population"];
                 d["Year"] = +d["Year"];
+                d["Country"] = d["Country"];
+                d["Hepatitis_B"] = +d["Hepatitis_B"];
+                d["Polio"] = +d["Polio"];
             });
 
             data = csvData;
@@ -114,15 +140,28 @@
 
             d3.selectAll("input[type=radio][name=color-encoding]").on("change", updateBubbleplot)
 
+            bubbleplot.on("brush", (brushedItems) => {
+                brushedData = brushedItems;
+                console.log(brushedData);
+                updatePiechart();
+            });
+
             const yearSlider = d3.select("#yearSlider");
             yearSlider.attr("min", 0)
                 .attr("max", years.length - 1)
                 .attr("value", years.indexOf(currentYear));
 
-            yearSlider.on("input", function () {
-                const currentIndex = +this.value;
-                currentYear = years[currentIndex];
+            function moveSlider(index) {
+                yearSlider.property("value", index);
+                currentYear = years[index];
                 updateBubbleplot();
+                brushedData = bubbleplot.getBrushedData(years[index]);
+                console.log("brushed Data");
+                console.log(brushedData);
+                updatePiechart();
+            }
+            yearSlider.on("input", function () {
+                moveSlider(+this.value);
             });
 
             d3.select("#autoBtn").on("click", function () {
@@ -134,22 +173,29 @@
                     currentYear = years[0];
                     yearSlider.property("value", 0);
                     updateBubbleplot();
+                    updatePiechart();
                     autoInterval = setInterval(() => {
                         let currentIndex = years.indexOf(currentYear);
                         if (currentIndex < years.length - 1) {
                             currentIndex++;
-                            yearSlider.property("value", currentIndex);
-                            currentYear = years[currentIndex];
-                            updateBubbleplot();
+                            moveSlider(currentIndex);
                         } else {
                             clearInterval(autoInterval);
                             autoInterval = null;
                             d3.select("#autoBtn").text('Auto');
                         }
-                    }, 500);
+                    }, 700);
                     this.textContent = 'Stop';
                 }
             });
+
+            piechart_hepa = new Piechart("#piechart_hepa");
+            piechart_hepa.initialize();
+
+            piechart_polio = new Piechart("#piechart_polio");
+            piechart_polio.initialize();
+
+            updatePiechart();
         });
     </script>
 </body>
