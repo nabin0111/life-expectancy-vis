@@ -76,7 +76,7 @@
             </div>
         </div>
 
-        <div class="text-center">
+        <div class="text-center mb-4">
             <svg width="650px" height="320px" id="bubbleplot"></svg>
             <div class="tooltip bs-tooltip-top show" id="bp-tooltip" role="tooltip" style="display:none">
                 <div class="tooltip-arrow"></div>
@@ -120,16 +120,13 @@
             csvData.forEach(d => {
                 d["Life_expectancy "] = +d["Life_expectancy "];
                 d["GDP"] = +d["GDP"];
-                d["Status"] = d["Status"];
-                d["Continent"] = d["Continent"];
                 d["Population"] = +d["Population"];
                 d["Year"] = +d["Year"];
-                d["Country"] = d["Country"];
                 d["Hepatitis_B"] = +d["Hepatitis_B"];
                 d["Polio"] = +d["Polio"];
             });
 
-            data = csvData;
+            data = csvData.filter(d => Object.values(d).every(value => !isNaN(value) || typeof value === 'string')); // NaN values are not allowed - because of some errors
             const years = Array.from(new Set(data.map(d => d.Year))).sort();
             currentYear = years[0];
 

@@ -1,7 +1,7 @@
 // vaccination
 class Piechart {
     margin = {
-        top: 10, right: 20, bottom: 40, left: 40
+        top: 50, right: 20, bottom: 40, left: 40
     }
 
     constructor(svg, width = 200, height = 200) {
@@ -26,10 +26,17 @@ class Piechart {
         this.svg
             .attr("width", this.width + this.margin.left + this.margin.right)
             .attr("height", this.height + this.margin.top + this.margin.bottom);
+
+        this.title = this.svg.append("text")
+            .attr("class", "title")
+            .attr("text-anchor", "middle")
+            .attr("x", this.width / 2 + this.margin.left)
+            .attr("y", this.margin.top / 2)
+            .style("fill", "black");
     }
 
     update(data, variable) {
-        const totalAvg = d3.mean(data, d => +d[variable]);
+        const totalAvg = d3.mean(data, d => d[variable]);
         const vaccinatedAvg = totalAvg;
         const notVaccinatedAvg = 100 - totalAvg;
 
@@ -37,6 +44,8 @@ class Piechart {
             { label: "Vaccinated", value: vaccinatedAvg, color: "#70db70" },
             { label: "Not Vaccinated", value: notVaccinatedAvg, color: "#ff704c" }
         ];
+
+        this.title.text(variable + " Vaccination Rate");
 
         const arcs = this.container.selectAll(".arc")
             .data(this.pie(pieData));
@@ -51,6 +60,7 @@ class Piechart {
             .attr("transform", d => `translate(${this.arc.centroid(d)})`)
             .attr("dy", "0.2em")
             .style("text-anchor", "middle")
+            .style("fill", "black")
             .text(d => `${Math.round(d.data.value * 100) / 100}%`);
 
         const newArcs = arcs.enter().append("g")
