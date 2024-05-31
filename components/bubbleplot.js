@@ -36,7 +36,7 @@ class Bubbleplot {
             .extent([[0, 0], [this.width, this.height]])
             .on("start brush", (event) => {
                 this.brushCircles(event);
-            })
+            });
     }
 
     update(xVar, yVar, colorVar, radiusVar, currentYear, country) {

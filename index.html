@@ -16,6 +16,7 @@
 
     <script src="components/bubbleplot.js"></script>
     <script src="components/piechart.js"></script>
+    <script src="components/spiderchart.js"></script>
 
     <title>Life Expectancy</title>
     <style>
@@ -93,10 +94,15 @@
             </svg>
         </div>
 
+        <div class="text-center">
+            <svg id="spiderchart">
+            </svg>
+            <!-- 연도에 따른 life expectancy.. -->
+        </div>
     </main>
 
     <script>
-        let data, brushedData, bubbleplot, piechart, currentYear;
+        let data, brushedData, clickedData, selectedCountry, bubbleplot, piechart, spiderchart, currentYear;
         const yearText = d3.select("#yearText");
         let autoInterval;
 
@@ -116,6 +122,10 @@
             piechart_polio.update(brushedData && brushedData.length > 0 ? brushedData : data.filter(d => d["Year"] == currentYear), "Polio", currentYear);
         }
 
+        function updateSpiderchart() {
+            spiderchart.update(data.filter(d => d["Year"] == 2020), brushedData && brushedData.length > 0 ? brushedData : undefined);
+        }
+
         d3.csv("https://gist.githubusercontent.com/aishwarya8615/89d9f36fc014dea62487f7347864d16a/raw/8629d284e13976dcb13bb0b27043224b9266fffa/Life_Expectancy_Data.csv").then(csvData => {
             csvData.forEach(d => {
                 d["Life_expectancy "] = +d["Life_expectancy "];
@@ -124,9 +134,16 @@
                 d["Year"] = +d["Year"];
                 d["Hepatitis_B"] = +d["Hepatitis_B"];
                 d["Polio"] = +d["Polio"];
+                d["Adult_Mortality"] = +d["Adult_Mortality"];
+                d["infant_deaths"] = +d["infant_deaths"];
+                d["Alcohol"] = +d["Alcohol"];
+                d["Total_expenditure"] = +d["Total_expenditure"];
+                d[" BMI "] = +d[" BMI "];
+                d["Income_composition_of_resources"] = +d["Income_composition_of_resources"];
             });
 
-            data = csvData.filter(d => Object.values(d).every(value => !isNaN(value) || typeof value === 'string')); // NaN values are not allowed - because of some errors
+            data = csvData//.filter(d => Object.values(d).every(value => !isNaN(value) || typeof value === 'string')); // NaN values are not allowed - because of some errors
+
             const years = Array.from(new Set(data.map(d => d.Year))).sort();
             currentYear = years[0];
 
@@ -139,8 +156,8 @@
 
             bubbleplot.on("brush", (brushedItems) => {
                 brushedData = brushedItems;
-                console.log(brushedData);
                 updatePiechart();
+                updateSpiderchart();
             });
 
             const yearSlider = d3.select("#yearSlider");
@@ -153,9 +170,8 @@
                 currentYear = years[index];
                 updateBubbleplot();
                 brushedData = bubbleplot.getBrushedData(years[index]);
-                console.log("brushed Data");
-                console.log(brushedData);
                 updatePiechart();
+                updateSpiderchart();
             }
             yearSlider.on("input", function () {
                 moveSlider(+this.value);
@@ -189,10 +205,15 @@
             piechart_hepa = new Piechart("#piechart_hepa");
             piechart_hepa.initialize();
 
-            piechart_polio = new Piechart("#piechart_polio");
+            piechart_polio = new Piechart("#piechart_polio", 110);
             piechart_polio.initialize();
 
             updatePiechart();
+
+            spiderchart = new Spiderchart("#spiderchart", data);
+            spiderchart.initialize();
+
+            updateSpiderchart();
         });
     </script>
 </body>

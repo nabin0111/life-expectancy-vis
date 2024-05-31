@@ -4,8 +4,9 @@ class Piechart {
         top: 50, right: 20, bottom: 40, left: 40
     }
 
-    constructor(svg, width = 200, height = 200) {
+    constructor(svg, right = 0, width = 150, height = 150) {
         this.svg = d3.select(svg);
+        this.margin.right += right;
         this.width = width;
         this.height = height;
         this.radius = Math.min(this.width, this.height) / 2;
@@ -33,6 +34,8 @@ class Piechart {
             .attr("x", this.width / 2 + this.margin.left)
             .attr("y", this.margin.top / 2)
             .style("fill", "black");
+
+        this.legend = this.svg.append("g");
     }
 
     update(data, variable) {
@@ -58,7 +61,7 @@ class Piechart {
 
         arcs.select("text")
             .attr("transform", d => `translate(${this.arc.centroid(d)})`)
-            .attr("dy", "0.2em")
+            .attr("dy", "0.5em")
             .style("text-anchor", "middle")
             .style("fill", "black")
             .text(d => `${Math.round(d.data.value * 100) / 100}%`);
@@ -74,10 +77,15 @@ class Piechart {
 
         newArcs.append("text")
             .attr("transform", d => `translate(${this.arc.centroid(d)})`)
-            .attr("dy", "0.2em")
+            .attr("dy", "0.5em")
             .style("text-anchor", "middle")
             .text(d => `${Math.round(d.data.value * 100) / 100}%`);
 
         arcs.exit().remove();
+
+        this.legend
+            .style("font-size", ".7em")
+            .attr("transform", `translate(${this.width + this.margin.left + 20}, ${this.height * 0.25})`)
+            .call(d3.legendColor().scale(d3.scaleOrdinal().domain(pieData.map(d => d.label)).range(pieData.map(d => d.color))));
     }
 }
