@@ -40,6 +40,23 @@ class Piechart {
 
     update(data, variable) {
         const totalAvg = d3.mean(data, d => d[variable]);
+
+        this.svg.selectAll(".no-data").remove();
+        if (isNaN(totalAvg)) {
+            this.title.text(variable + " Vaccination Rate");
+            this.container.selectAll(".arc").remove();
+            this.legend.selectAll("*").remove();
+
+            this.svg.append("text")
+                .attr("class", "no-data")
+                .attr("text-anchor", "middle")
+                .attr("x", this.width / 2 + this.margin.left)
+                .attr("y", this.height / 2 + this.margin.top)
+                .style("fill", "black")
+                .text("No Data Available");
+            return;
+        }
+
         const vaccinatedAvg = totalAvg;
         const notVaccinatedAvg = 100 - totalAvg;
 

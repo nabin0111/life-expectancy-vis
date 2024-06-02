@@ -3,13 +3,13 @@ class Spiderchart {
         top: 100, right: 100, bottom: 100, left: 200
     };
 
-    constructor(svg, data, width = 300, height = 300) {
-        this.svg = d3.select(svg);
+    constructor(svg, tooltip, data, width = 200, height = 200) {
+        this.svg = svg;
+        this.tooltip = tooltip;
         this.data = data;
         this.width = width;
         this.height = height;
         this.radius = Math.min(width, height) / 2;
-        this.legend = this.svg.append("g");
         this.variables = [
             "Adult_Mortality",
             "infant_deaths",
@@ -22,7 +22,12 @@ class Spiderchart {
     }
 
     initialize() {
-        this.svg.attr("width", this.width + this.margin.left + this.margin.right)
+        this.svg = d3.select(this.svg);
+        this.tooltip = d3.select(this.tooltip);
+        this.legend = this.svg.append("g");
+
+        this.svg
+            .attr("width", this.width + this.margin.left + this.margin.right)
             .attr("height", this.height + this.margin.top + this.margin.bottom);
 
         this.g = this.svg.append("g")
@@ -34,9 +39,7 @@ class Spiderchart {
     }
 
     createAxes() {
-        // 보조선 그리기
         const levels = 5;
-        const radiusScale = d3.scaleLinear().range([0, this.radius]).domain([0, 1]);
 
         for (let level = 0; level <= levels; level++) {
             const levelFactor = this.radius * (level / levels);
@@ -50,7 +53,7 @@ class Spiderchart {
                 .attr("y2", (d, i) => levelFactor * Math.sin(this.angleSlice * (i + 1) - Math.PI / 2))
                 .attr("class", "line")
                 .style("stroke", "grey")
-                .style("stroke-opacity", "0.75")
+                .style("stroke-opacity", "0.5")
                 .style("stroke-width", "0.3px");
 
             this.g.selectAll(".grid-label")
@@ -65,7 +68,6 @@ class Spiderchart {
                 .text((level / levels) * 100);
         }
 
-        // 축을 그리기
         this.g.selectAll(".axis")
             .data(this.variables)
             .enter().append("line")
@@ -138,11 +140,11 @@ class Spiderchart {
 
         if (brushedData) {
             brushedAvgData = this.variables.map(v => {
-                const temp = d3.mean(brushedData, d => d[v]);
+                const meanValue = d3.mean(brushedData, d => d[v]);
                 return {
                     variable: v,
-                    value: this.normalizeValue(temp, this.minValues[v], this.maxValues[v])
-                }
+                    value: this.normalizeValue(meanValue, this.minValues[v], this.maxValues[v])
+                };
             });
         }
 
@@ -164,7 +166,9 @@ class Spiderchart {
 
         averagePath.exit().remove();
 
-        if (brushedAvgData) {
+        if (!brushedData) {
+            this.g.selectAll(".country-path").remove();
+        } else {
             const countryPath = this.g.selectAll(".country-path")
                 .data([brushedAvgData]);
 
@@ -172,16 +176,74 @@ class Spiderchart {
                 .attr("class", "country-path")
                 .merge(countryPath)
                 .attr("d", radarLine)
-                .style("fill", "rgba(0, 150, 240, 0.5)")
+                .style("fill", "rgba(0, 150, 240, 0.3)")
                 .style("stroke", "#3399ff")
                 .style("stroke-width", 1.5);
 
             countryPath.exit().remove();
         }
 
+        this.addCircles(averageData, brushedAvgData);
+
         this.legend
             .style("font-size", ".7em")
             .attr("transform", `translate(${this.width + this.margin.left + 20}, ${this.height * 0.25})`)
             .call(d3.legendColor().scale(d3.scaleOrdinal().domain(["Average", "Brushed"]).range(["rgba(150, 150, 150, 0.3)", "rgba(0, 150, 240, 0.5)"])));
+    }
+
+    addCircles(averageData, brushedAvgData) {
+        const allData = brushedAvgData ? [averageData, brushedAvgData] : [averageData];
+
+        const points = this.g.selectAll(".tooltip-point")
+            .data(allData.flat());
+
+        points.enter().append("circle")
+            .attr("class", "tooltip-point")
+            .attr("r", 3)
+            .merge(points)
+            .attr("cx", (d, i) => this.radius * d.value * Math.cos(this.angleSlice * i - Math.PI / 2))
+            .attr("cy", (d, i) => this.radius * d.value * Math.sin(this.angleSlice * i - Math.PI / 2))
+            .style("fill", (d, i) => i < averageData.length ? "grey" : "#3399ff")
+            .style("opacity", 1)
+            .on("mouseover", (e, d) => {
+                d3.select(e.currentTarget)
+                    .attr("r", 5)
+                    .style("fill", "red");
+
+                this.tooltip.select(".tooltip-inner")
+                    .html(`${d.value.toFixed(2)}`);
+
+                Popper.createPopper(e.target, this.tooltip.node(), {
+                    placement: 'top',
+                    modifiers: [
+                        {
+                            name: 'arrow',
+                            options: {
+                                element: this.tooltip.select(".tooltip-arrow").node(),
+                            },
+                        },
+                        {
+                            name: 'offset',
+                            options: {
+                                offset: [0, 10],
+                            },
+                        },
+                    ],
+                });
+
+                this.tooltip.style("display", "block");
+            })
+            .on("mouseout", (event, d) => {
+                const index = allData.flat().indexOf(d);
+                const isAverageData = index < averageData.length;
+
+                d3.select(event.currentTarget)
+                    .attr("r", 3)
+                    .style("fill", isAverageData ? "grey" : "#3399ff");
+
+                this.tooltip.style("display", "none");
+            });
+
+        points.exit().remove();
     }
 }
