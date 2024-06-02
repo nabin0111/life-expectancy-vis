@@ -1,7 +1,7 @@
 // vaccination
 class Piechart {
     margin = {
-        top: 50, right: 20, bottom: 40, left: 40
+        top: 50, right: 30, bottom: 40, left: 40
     }
 
     constructor(svg, right = 0, width = 150, height = 150) {
@@ -100,9 +100,13 @@ class Piechart {
 
         arcs.exit().remove();
 
-        this.legend
-            .style("font-size", ".7em")
-            .attr("transform", `translate(${this.width + this.margin.left + 20}, ${this.height * 0.25})`)
-            .call(d3.legendColor().scale(d3.scaleOrdinal().domain(pieData.map(d => d.label)).range(pieData.map(d => d.color))));
+        if (variable === "Polio") {
+            this.legend
+                .style("font-size", ".7em")
+                .attr("transform", `translate(${this.width + this.margin.left + 20}, ${this.height * 0.25})`)
+                .call(d3.legendColor().scale(d3.scaleOrdinal().domain(pieData.map(d => d.label)).range(pieData.map(d => d.color))));
+        } else {
+            this.legend.selectAll("*").remove();
+        }
     }
 }
