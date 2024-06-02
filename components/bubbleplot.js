@@ -70,7 +70,7 @@ class Bubbleplot {
                 d3.select(e.currentTarget).attr("r", parseFloat(d3.select(e.currentTarget).attr("r")) + 2).style("opacity", 1);
 
                 this.tooltip.select(".tooltip-inner")
-                    .html(`${d[this.country]}<br />${this.xVar}: ${d[this.xVar]}<br />${this.yVar}: ${d[this.yVar]}`);
+                    .html(`${d[this.country]}<br />${this.xVar}: ${d[this.xVar]}<br />${this.yVar}: ${d[this.yVar]}<br />${this.radiusVar}: ${d[this.radiusVar]}`);
 
                 Popper.createPopper(e.target, this.tooltip.node(), {
                     placement: 'top',
